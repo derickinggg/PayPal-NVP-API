@@ -101,7 +101,26 @@ export default function App() {
 	const [refund, setRefund] = useState({ TRANSACTIONID:'', REFUNDTYPE:'Full', AMT:'', CURRENCYCODE:'USD' })
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState('')
+	const [savedApiKeys, setSavedApiKeys] = useState([])
+	const [showSaveForm, setShowSaveForm] = useState(false)
+	const [saveKeyForm, setSaveKeyForm] = useState({ name: '', username: '', password: '', signature: '', environment: 'sandbox' })
+	const [useKeyPassword, setUseKeyPassword] = useState('')
+	const [selectedKeyId, setSelectedKeyId] = useState('')
 	const logs = useEventSource('/api/logs/stream')
+
+	// Load saved API keys on component mount
+	useEffect(() => {
+		loadSavedApiKeys()
+	}, [])
+
+	const loadSavedApiKeys = async () => {
+		try {
+			const response = await api('/api-keys')
+			setSavedApiKeys(response.apiKeys || [])
+		} catch (err) {
+			console.error('Failed to load saved API keys:', err)
+		}
+	}
 
 	const handleApiCall = async (apiCall, successMessage) => {
 		setLoading(true)
@@ -160,6 +179,38 @@ export default function App() {
 		})
 	}
 
+	const onSaveApiKey = async (e) => {
+		e.preventDefault()
+		await handleApiCall(async () => {
+			await api('/api-keys', { method:'POST', body: JSON.stringify(saveKeyForm) })
+			setSaveKeyForm({ name: '', username: '', password: '', signature: '', environment: 'sandbox' })
+			setShowSaveForm(false)
+			await loadSavedApiKeys()
+		}, 'API key saved successfully')
+	}
+
+	const onUseApiKey = async (keyId) => {
+		if (!useKeyPassword) {
+			setError('Password is required to use saved API key')
+			return
+		}
+		
+		await handleApiCall(async () => {
+			await api(`/api-keys/${keyId}/use`, { method:'POST', body: JSON.stringify({ password: useKeyPassword }) })
+			setUseKeyPassword('')
+			setSelectedKeyId('')
+		}, 'API key loaded into session')
+	}
+
+	const onDeleteApiKey = async (keyId) => {
+		if (!confirm('Are you sure you want to delete this API key?')) return
+		
+		await handleApiCall(async () => {
+			await api(`/api-keys/${keyId}`, { method:'DELETE' })
+			await loadSavedApiKeys()
+		}, 'API key deleted successfully')
+	}
+
 	return (
 		<div style={{maxWidth:1100, margin:'0 auto', padding:24, fontFamily:'Inter, system-ui, Arial'}}>
 			<h2 style={{marginTop:0}}>PayPal NVP Dashboard</h2>
@@ -192,8 +243,114 @@ export default function App() {
 					<div style={{gridColumn:'1 / span 2', display:'flex', gap:8}}>
 						<button type="submit">Save to session</button>
 						<button type="button" onClick={onClearCreds}>Clear</button>
+						<button type="button" onClick={() => {
+							if (!showSaveForm) {
+								// Auto-populate form with current credentials
+								setSaveKeyForm({
+									name: '',
+									username: creds.username,
+									password: creds.password,
+									signature: creds.signature,
+									environment: creds.env
+								})
+							}
+							setShowSaveForm(!showSaveForm)
+						}} style={{background:'#059669', color:'white'}}>
+							{showSaveForm ? 'Cancel Save' : 'Save Permanently'}
+						</button>
 					</div>
 				</form>
+
+				{showSaveForm && (
+					<div style={{marginTop:16, padding:16, background:'#f0f9ff', border:'1px solid #0ea5e9', borderRadius:8}}>
+						<h4 style={{margin:'0 0 12px 0'}}>Save API Key Permanently</h4>
+						<form onSubmit={onSaveApiKey} style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+							<label>Name<input value={saveKeyForm.name} onChange={e=>setSaveKeyForm(v=>({...v, name:e.target.value}))} placeholder="My API Key" required style={{width:'100%'}} /></label>
+							<label>Environment<select value={saveKeyForm.environment} onChange={e=>setSaveKeyForm(v=>({...v, environment:e.target.value}))}><option value="sandbox">Sandbox</option><option value="live">Live</option></select></label>
+							<label>Username<input value={saveKeyForm.username} onChange={e=>setSaveKeyForm(v=>({...v, username:e.target.value}))} required style={{width:'100%'}} /></label>
+							<label>Password<input type="password" value={saveKeyForm.password} onChange={e=>setSaveKeyForm(v=>({...v, password:e.target.value}))} required style={{width:'100%'}} /></label>
+							<label style={{gridColumn:'1 / span 2'}}>Signature<input value={saveKeyForm.signature} onChange={e=>setSaveKeyForm(v=>({...v, signature:e.target.value}))} required style={{width:'100%'}} /></label>
+							<div style={{gridColumn:'1 / span 2', display:'flex', gap:8}}>
+								<button type="submit" style={{background:'#059669', color:'white'}}>Save API Key</button>
+								<button type="button" onClick={() => setShowSaveForm(false)}>Cancel</button>
+							</div>
+						</form>
+					</div>
+				)}
+			</Section>
+
+			<Section title="Saved API Keys" actions={
+				<span style={{fontSize:12, color:'#667085'}}>
+					{savedApiKeys.length} saved key{savedApiKeys.length !== 1 ? 's' : ''}
+				</span>
+			}>
+				{savedApiKeys.length === 0 ? (
+					<div style={{textAlign:'center', color:'#6b7280', fontSize:14, padding:20}}>
+						No saved API keys. Use "Save Permanently" above to store credentials securely.
+					</div>
+				) : (
+					<div style={{display:'grid', gap:12}}>
+						{savedApiKeys.map((key) => (
+							<div key={key.id} style={{
+								padding:12, 
+								border:'1px solid #e3e8ef', 
+								borderRadius:8, 
+								background:'#f8fafc',
+								display:'grid',
+								gridTemplateColumns:'1fr auto',
+								alignItems:'center',
+								gap:12
+							}}>
+								<div>
+									<div style={{fontWeight:500, marginBottom:4}}>{key.name}</div>
+									<div style={{fontSize:12, color:'#6b7280'}}>
+										{key.username} • {key.environment} • Created {new Date(key.created_at).toLocaleDateString()}
+									</div>
+								</div>
+								<div style={{display:'flex', gap:8, alignItems:'center'}}>
+									{selectedKeyId === key.id ? (
+										<div style={{display:'flex', gap:8, alignItems:'center'}}>
+											<input 
+												type="password" 
+												placeholder="Enter password" 
+												value={useKeyPassword}
+												onChange={e=>setUseKeyPassword(e.target.value)}
+												style={{width:120}}
+											/>
+											<button 
+												onClick={() => onUseApiKey(key.id)}
+												style={{background:'#2563eb', color:'white', fontSize:12}}
+											>
+												Use
+											</button>
+											<button 
+												onClick={() => {setSelectedKeyId(''); setUseKeyPassword('')}}
+												style={{fontSize:12}}
+											>
+												Cancel
+											</button>
+										</div>
+									) : (
+										<>
+											<button 
+												onClick={() => setSelectedKeyId(key.id)}
+												style={{background:'#2563eb', color:'white', fontSize:12}}
+											>
+												Use Key
+											</button>
+											<button 
+												onClick={() => onDeleteApiKey(key.id)}
+												style={{background:'#dc2626', color:'white', fontSize:12}}
+											>
+												Delete
+											</button>
+										</>
+									)}
+								</div>
+							</div>
+						))}
+					</div>
+				)}
 			</Section>
 
 			<Section title="NVP Methods">

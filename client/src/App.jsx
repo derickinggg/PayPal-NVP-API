@@ -46,13 +46,51 @@ function Section({ title, children, actions }) {
 
 async function api(path, opts = {}) {
 	const base = typeof __API_BASE__ !== 'undefined' ? __API_BASE__ : '/api'
-	const res = await fetch(`${base}${path}`, {
-		credentials: 'include',
-		headers: { 'Content-Type': 'application/json' },
-		...opts,
+	const startTime = Date.now()
+	
+	console.log(`🚀 API Call: ${opts.method || 'GET'} ${path}`, {
+		timestamp: new Date().toISOString(),
+		body: opts.body ? JSON.parse(opts.body) : undefined
 	})
-	if (!res.ok) throw new Error((await res.json()).error || 'Request failed')
-	return res.json()
+	
+	try {
+		const res = await fetch(`${base}${path}`, {
+			credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			...opts,
+		})
+		
+		const duration = Date.now() - startTime
+		
+		if (!res.ok) {
+			const errorData = await res.json().catch(() => ({ error: 'Request failed' }))
+			console.error(`❌ API Error: ${res.status} ${path}`, {
+				timestamp: new Date().toISOString(),
+				duration: `${duration}ms`,
+				status: res.status,
+				error: errorData
+			})
+			throw new Error(errorData.error || `HTTP ${res.status}: Request failed`)
+		}
+		
+		const data = await res.json()
+		console.log(`✅ API Success: ${path}`, {
+			timestamp: new Date().toISOString(),
+			duration: `${duration}ms`,
+			status: res.status,
+			response: data
+		})
+		
+		return data
+	} catch (error) {
+		const duration = Date.now() - startTime
+		console.error(`💥 API Exception: ${path}`, {
+			timestamp: new Date().toISOString(),
+			duration: `${duration}ms`,
+			error: error.message
+		})
+		throw error
+	}
 }
 
 export default function App() {
@@ -61,39 +99,89 @@ export default function App() {
 	const [searchParams, setSearchParams] = useState({ STARTDATE: '', ENDDATE: '', TRANSACTIONCLASS: '' })
 	const [detailsId, setDetailsId] = useState('')
 	const [refund, setRefund] = useState({ TRANSACTIONID:'', REFUNDTYPE:'Full', AMT:'', CURRENCYCODE:'USD' })
+	const [loading, setLoading] = useState(false)
+	const [error, setError] = useState('')
 	const logs = useEventSource('/api/logs/stream')
+
+	const handleApiCall = async (apiCall, successMessage) => {
+		setLoading(true)
+		setError('')
+		try {
+			await apiCall()
+			if (successMessage) {
+				alert(successMessage)
+			}
+		} catch (err) {
+			setError(err.message)
+			console.error('API call failed:', err)
+		} finally {
+			setLoading(false)
+		}
+	}
 
 	const onSaveCreds = async (e) => {
 		e.preventDefault()
-		await api('/session/credentials', { method:'POST', body: JSON.stringify(creds) })
-		alert('Credentials saved in session')
+		await handleApiCall(async () => {
+			await api('/session/credentials', { method:'POST', body: JSON.stringify(creds) })
+		}, 'Credentials saved in session')
 	}
+	
 	const onClearCreds = async () => {
-		await api('/session/credentials', { method:'DELETE' })
-		alert('Credentials cleared')
+		await handleApiCall(async () => {
+			await api('/session/credentials', { method:'DELETE' })
+		}, 'Credentials cleared')
 	}
 
 	const onGetBalance = async () => {
-		const r = await api('/nvp/get-balance', { method:'POST', body: JSON.stringify({}) })
-		setResult({ method:'GetBalance', r })
+		await handleApiCall(async () => {
+			const r = await api('/nvp/get-balance', { method:'POST', body: JSON.stringify({}) })
+			setResult({ method:'GetBalance', r })
+		})
 	}
+	
 	const onSearch = async () => {
-		const r = await api('/nvp/transaction-search', { method:'POST', body: JSON.stringify(searchParams) })
-		setResult({ method:'TransactionSearch', r })
+		await handleApiCall(async () => {
+			const r = await api('/nvp/transaction-search', { method:'POST', body: JSON.stringify(searchParams) })
+			setResult({ method:'TransactionSearch', r })
+		})
 	}
+	
 	const onDetails = async () => {
-		const r = await api('/nvp/get-transaction-details', { method:'POST', body: JSON.stringify({ TRANSACTIONID: detailsId }) })
-		setResult({ method:'GetTransactionDetails', r })
+		await handleApiCall(async () => {
+			const r = await api('/nvp/get-transaction-details', { method:'POST', body: JSON.stringify({ TRANSACTIONID: detailsId }) })
+			setResult({ method:'GetTransactionDetails', r })
+		})
 	}
+	
 	const onRefund = async () => {
-		const r = await api('/nvp/refund-transaction', { method:'POST', body: JSON.stringify(refund) })
-		setResult({ method:'RefundTransaction', r })
+		await handleApiCall(async () => {
+			const r = await api('/nvp/refund-transaction', { method:'POST', body: JSON.stringify(refund) })
+			setResult({ method:'RefundTransaction', r })
+		})
 	}
 
 	return (
 		<div style={{maxWidth:1100, margin:'0 auto', padding:24, fontFamily:'Inter, system-ui, Arial'}}>
 			<h2 style={{marginTop:0}}>PayPal NVP Dashboard</h2>
 			<p style={{color:'#475467'}}>Enter your NVP API credentials (stored only in session) and call common API methods. Logs stream in real-time below.</p>
+			
+			{loading && (
+				<div style={{padding:12, background:'#e3f2fd', border:'1px solid #2196f3', borderRadius:8, marginBottom:16, color:'#1976d2'}}>
+					🔄 Processing API request...
+				</div>
+			)}
+			
+			{error && (
+				<div style={{padding:12, background:'#ffebee', border:'1px solid #f44336', borderRadius:8, marginBottom:16, color:'#d32f2f'}}>
+					❌ Error: {error}
+					<button 
+						onClick={() => setError('')} 
+						style={{marginLeft:8, background:'none', border:'none', color:'#d32f2f', cursor:'pointer'}}
+					>
+						✕
+					</button>
+				</div>
+			)}
 
 			<Section title="Credentials">
 				<form onSubmit={onSaveCreds} style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
@@ -143,14 +231,68 @@ export default function App() {
 				<Json data={result} />
 			</Section>
 
-			<Section title="Logs (live)">
-				<div style={{maxHeight:300, overflow:'auto', background:'#f8fafc', padding:8, borderRadius:8, border:'1px solid #e3e8ef'}}>
-					{logs.map((l, i) => (
-						<div key={i} style={{marginBottom:8}}>
-							<div style={{fontSize:12, color:'#667085'}}>{l.ts} — {l.source} — {l.type}</div>
-							<Json data={l} />
+			<Section title="API Monitoring & Logs (Real-time)" actions={
+				<div>
+					<button onClick={() => console.clear()} style={{marginRight:8}}>Clear Console</button>
+					<span style={{fontSize:12, color:'#667085'}}>
+						{logs.length} events • Live streaming
+					</span>
+				</div>
+			}>
+				<div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16}}>
+					<div>
+						<h4 style={{margin:'0 0 8px 0', fontSize:14}}>Recent API Calls</h4>
+						<div style={{background:'#f8fafc', padding:8, borderRadius:8, border:'1px solid #e3e8ef', maxHeight:200, overflow:'auto'}}>
+							{logs.filter(l => l.source === 'nvp').slice(-5).map((l, i) => (
+								<div key={i} style={{marginBottom:4, fontSize:12}}>
+									<span style={{color: l.type === 'request' ? '#2563eb' : '#059669'}}>
+										{l.type === 'request' ? '→' : '←'} {l.method}
+									</span>
+									<span style={{color:'#6b7280', marginLeft:8}}>
+										{new Date(l.ts).toLocaleTimeString()}
+									</span>
+								</div>
+							))}
 						</div>
-					))}
+					</div>
+					<div>
+						<h4 style={{margin:'0 0 8px 0', fontSize:14}}>System Status</h4>
+						<div style={{background:'#f8fafc', padding:8, borderRadius:8, border:'1px solid #e3e8ef'}}>
+							<div style={{fontSize:12, marginBottom:4}}>
+								<span style={{color:'#059669'}}>● </span>
+								Event Stream: Connected
+							</div>
+							<div style={{fontSize:12, marginBottom:4}}>
+								<span style={{color:'#059669'}}>● </span>
+								API Base: {typeof __API_BASE__ !== 'undefined' ? __API_BASE__ : '/api'}
+							</div>
+							<div style={{fontSize:12}}>
+								<span style={{color:'#6b7280'}}>Last Update: </span>
+								{logs.length > 0 ? new Date(logs[logs.length - 1].ts).toLocaleTimeString() : 'Never'}
+							</div>
+						</div>
+					</div>
+				</div>
+				
+				<div>
+					<h4 style={{margin:'0 0 8px 0', fontSize:14}}>Full Event Log</h4>
+					<div style={{maxHeight:300, overflow:'auto', background:'#f8fafc', padding:8, borderRadius:8, border:'1px solid #e3e8ef'}}>
+						{logs.map((l, i) => (
+							<div key={i} style={{marginBottom:8}}>
+								<div style={{fontSize:12, color:'#667085'}}>
+									{l.ts} — {l.source} — {l.type}
+									{l.method && ` — ${l.method}`}
+									{l.status && ` — ${l.status}`}
+								</div>
+								<Json data={l} />
+							</div>
+						))}
+						{logs.length === 0 && (
+							<div style={{textAlign:'center', color:'#6b7280', fontSize:12, padding:20}}>
+								No events yet. Make an API call to see real-time monitoring.
+							</div>
+						)}
+					</div>
 				</div>
 			</Section>
 		</div>

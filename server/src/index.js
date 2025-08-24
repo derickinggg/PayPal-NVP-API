@@ -14,6 +14,9 @@ const config = require('./config');
 const routes = require('./routes');
 const ipnRouter = require('./ipn');
 const { addLog } = require('./logging');
+const nvpRoutes = require('./routes/nvpRoutes');
+const loggingService = require('./services/loggingService');
+const WebSocketService = require('./services/websocketService');
 
 const app = express();
 
@@ -49,8 +52,25 @@ app.use((req, res, next) => {
 		.catch(next);
 });
 
+// Logging middleware for API requests
+app.use('/api', (req, res, next) => {
+  const startTime = Date.now();
+  const logId = loggingService.logApiRequest(req.method, req.path, req.body, req.headers);
+  
+  // Override res.json to capture response
+  const originalJson = res.json;
+  res.json = function(data) {
+    const duration = Date.now() - startTime;
+    loggingService.logApiResponse(logId, data, duration);
+    return originalJson.call(this, data);
+  };
+  
+  next();
+});
+
 app.use('/api', routes);
 app.use('/api', ipnRouter);
+app.use('/api/nvp', nvpRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {
@@ -61,17 +81,25 @@ app.use((err, req, res, next) => {
 
 function start() {
 	const port = config.port;
+	let server;
+	
 	if (config.httpsEnabled) {
 		const key = fs.readFileSync(path.resolve(config.sslKeyPath));
 		const cert = fs.readFileSync(path.resolve(config.sslCertPath));
-		https.createServer({ key, cert }, app).listen(port, () => {
+		server = https.createServer({ key, cert }, app);
+		server.listen(port, () => {
 			console.log(`HTTPS server listening on https://localhost:${port}`);
 		});
 	} else {
-		http.createServer(app).listen(port, () => {
+		server = http.createServer(app);
+		server.listen(port, () => {
 			console.log(`HTTP server listening on http://localhost:${port}`);
 		});
 	}
+	
+	// Initialize WebSocket service
+	const wsService = new WebSocketService(server);
+	console.log('WebSocket service initialized');
 }
 
 if (require.main === module) {

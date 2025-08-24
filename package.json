@@ -16,6 +16,7 @@
     "concurrently": "^9.2.0"
   },
   "dependencies": {
-    "@vendia/serverless-express": "^4.12.6"
+    "@vendia/serverless-express": "^4.12.6",
+    "axios": "^1.11.0"
   }
 }

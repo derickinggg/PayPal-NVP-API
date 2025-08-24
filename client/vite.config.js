@@ -14,6 +14,10 @@ export default defineConfig({
 			}
 		}
 	},
+	build: {
+		outDir: '../public',
+		emptyOutDir: true
+	},
 	define: {
 		__API_BASE__: JSON.stringify(process.env.VITE_API_BASE || '/api')
 	}

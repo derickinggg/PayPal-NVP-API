@@ -14,6 +14,7 @@ const config = require('./config');
 const routes = require('./routes');
 const ipnRouter = require('./ipn');
 const { addLog } = require('./logging');
+const database = require('./database');
 
 const app = express();
 
@@ -59,18 +60,27 @@ app.use((err, req, res, next) => {
 	res.status(status).json({ error: err.message || 'Internal Server Error' });
 });
 
-function start() {
-	const port = config.port;
-	if (config.httpsEnabled) {
-		const key = fs.readFileSync(path.resolve(config.sslKeyPath));
-		const cert = fs.readFileSync(path.resolve(config.sslCertPath));
-		https.createServer({ key, cert }, app).listen(port, () => {
-			console.log(`HTTPS server listening on https://localhost:${port}`);
-		});
-	} else {
-		http.createServer(app).listen(port, () => {
-			console.log(`HTTP server listening on http://localhost:${port}`);
-		});
+async function start() {
+	try {
+		// Initialize database
+		await database.init();
+		console.log('Database initialized successfully');
+		
+		const port = config.port;
+		if (config.httpsEnabled) {
+			const key = fs.readFileSync(path.resolve(config.sslKeyPath));
+			const cert = fs.readFileSync(path.resolve(config.sslCertPath));
+			https.createServer({ key, cert }, app).listen(port, () => {
+				console.log(`HTTPS server listening on https://localhost:${port}`);
+			});
+		} else {
+			http.createServer(app).listen(port, () => {
+				console.log(`HTTP server listening on http://localhost:${port}`);
+			});
+		}
+	} catch (error) {
+		console.error('Failed to start server:', error);
+		process.exit(1);
 	}
 }
 

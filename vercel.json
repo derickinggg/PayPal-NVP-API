@@ -27,7 +27,11 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "SESSION_SECRET": "@session_secret",
+    "PAYPAL_ENV": "@paypal_env",
+    "PAYPAL_NVP_VERSION": "@paypal_nvp_version",
+    "LOG_BUFFER_SIZE": "@log_buffer_size"
   },
   "functions": {
     "api/index.js": {

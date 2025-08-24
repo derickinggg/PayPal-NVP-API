@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "main": "src/index.js",
   "type": "commonjs",
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon src/index.js",
     "start": "node src/index.js",
+    "build": "echo 'Build completed'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

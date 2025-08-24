@@ -34,6 +34,11 @@ function getLogs() {
 }
 
 function broadcastEvent(event, data) {
+	// Skip broadcasting in serverless environment
+	if (process.env.VERCEL) {
+		return;
+	}
+	
 	const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 	sseClients.forEach((res) => {
 		try {
@@ -46,6 +51,11 @@ function broadcastEvent(event, data) {
 }
 
 function sseStreamHandler(req, res) {
+	// Disable SSE in serverless environment
+	if (process.env.VERCEL) {
+		return res.status(501).json({ error: 'SSE not supported in serverless environment' });
+	}
+	
 	res.setHeader('Content-Type', 'text/event-stream');
 	res.setHeader('Cache-Control', 'no-cache');
 	res.setHeader('Connection', 'keep-alive');

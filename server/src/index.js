@@ -40,7 +40,13 @@ app.use((req, res, next) => {
 			secure: config.httpsEnabled || config.nodeEnv === 'production',
 			sameSite: 'lax',
 			path: '/',
+			httpOnly: true,
 		},
+		// Add serverless-specific options
+		...(process.env.VERCEL && {
+			ttl: 0, // No TTL in serverless
+			removeUnused: true
+		})
 	})
 		.then((session) => {
 			req.session = session;
@@ -60,13 +66,27 @@ app.use((err, req, res, next) => {
 });
 
 function start() {
+	// Only start HTTP server if not in serverless environment
+	if (process.env.VERCEL) {
+		console.log('Running in Vercel serverless environment');
+		return;
+	}
+	
 	const port = config.port;
-	if (config.httpsEnabled) {
-		const key = fs.readFileSync(path.resolve(config.sslKeyPath));
-		const cert = fs.readFileSync(path.resolve(config.sslCertPath));
-		https.createServer({ key, cert }, app).listen(port, () => {
-			console.log(`HTTPS server listening on https://localhost:${port}`);
-		});
+	if (config.httpsEnabled && config.sslKeyPath && config.sslCertPath) {
+		try {
+			const key = fs.readFileSync(path.resolve(config.sslKeyPath));
+			const cert = fs.readFileSync(path.resolve(config.sslCertPath));
+			https.createServer({ key, cert }, app).listen(port, () => {
+				console.log(`HTTPS server listening on https://localhost:${port}`);
+			});
+		} catch (error) {
+			console.error('Failed to start HTTPS server:', error.message);
+			// Fallback to HTTP
+			http.createServer(app).listen(port, () => {
+				console.log(`HTTP server listening on http://localhost:${port}`);
+			});
+		}
 	} else {
 		http.createServer(app).listen(port, () => {
 			console.log(`HTTP server listening on http://localhost:${port}`);

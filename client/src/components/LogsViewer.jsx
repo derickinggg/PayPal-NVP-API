@@ -175,7 +175,7 @@ const LogsViewer = ({ logs }) => {
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50"
             >
               Clear Filters
-            </div>
+            </button>
           </div>
         </div>
 

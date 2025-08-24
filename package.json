@@ -9,13 +9,19 @@
     "client": "npm --prefix client run dev",
     "build": "npm --prefix client run build",
     "start": "npm --prefix server start",
+    "prebuild": "npm install",
     "vercel-build": "npm --prefix client install && npm --prefix client run build",
-    "postinstall": "npm --prefix client install && npm --prefix server install"
+    "postinstall": "npm --prefix client install && npm --prefix server install",
+    "deploy": "./deploy.sh",
+    "build:test": "npm run vercel-build && echo 'Build test completed successfully!'"
   },
   "devDependencies": {
     "concurrently": "^9.2.0"
   },
   "dependencies": {
     "@vendia/serverless-express": "^4.12.6"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

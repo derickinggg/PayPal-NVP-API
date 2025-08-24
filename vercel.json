@@ -24,6 +24,11 @@
     {
       "src": "/(.*)",
       "dest": "/client/dist/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/client/dist/index.html",
+      "status": 200
     }
   ],
   "env": {
@@ -34,5 +39,8 @@
       "memory": 1024,
       "maxDuration": 60
     }
-  }
+  },
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "client/dist",
+  "installCommand": "npm install"
 }

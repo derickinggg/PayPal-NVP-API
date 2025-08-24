@@ -11,3 +11,5 @@ client/src
 server/src/*.test.js
 *.md
 !DEPLOYMENT.md
+.env.example
+server/certs

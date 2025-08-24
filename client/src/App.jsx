@@ -45,7 +45,8 @@ function Section({ title, children, actions }) {
 }
 
 async function api(path, opts = {}) {
-	const res = await fetch(`/api${path}`, {
+	const base = typeof __API_BASE__ !== 'undefined' ? __API_BASE__ : '/api'
+	const res = await fetch(`${base}${path}`, {
 		credentials: 'include',
 		headers: { 'Content-Type': 'application/json' },
 		...opts,

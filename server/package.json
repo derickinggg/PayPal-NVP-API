@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon src/index.js",
     "start": "node src/index.js",
+    "build": "echo 'Server build complete - no compilation needed'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -1,5 +1,11 @@
 const path = require('path');
-require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
+
+// Try to load .env file, but don't fail if it doesn't exist
+try {
+  require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
+} catch (error) {
+  console.log('No .env file found, using environment variables');
+}
 
 const env = process.env;
 

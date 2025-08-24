@@ -1,129 +1,245 @@
-# PayPal NVP Dashboard
+# NVP API Dashboard
 
-A simple full-stack app to test PayPal Classic NVP API with temporary in-session credentials, real-time request/response logs, and IPN verification.
+A comprehensive, real-time dashboard for monitoring and interacting with PayPal NVP (Name-Value Pair) API endpoints. This dashboard provides real-time monitoring, logging, and management of key NVP API operations.
 
-- Backend: Node.js + Express
-- Frontend: React (Vite)
-- Sessions: `iron-session` (cookies)
-- Logging: In-memory + Server-Sent Events (SSE)
-- Webhook: PayPal IPN verification (sandbox/live)
-- Security: Helmet, rate limits, CORS, HTTPS option
+## Features
 
-## Prerequisites
+### 🔑 Key API Operations
+- **GetBalance** - View account balance and financial information
+- **TransactionSearch** - Search transactions by date range and filters
+- **GetTransactionDetails** - Get detailed information about specific transactions
+- **RefundTransaction** - Process full or partial refunds
 
-- Node.js 18+ (22+ recommended)
-- npm
+### 📊 Real-Time Dashboard
+- **Live Statistics** - Real-time API usage metrics and performance indicators
+- **WebSocket Integration** - Instant updates for all API operations
+- **Comprehensive Logging** - Track all API requests, responses, and errors
+- **Performance Monitoring** - Response time tracking and success rate analysis
 
-## Quick start (local)
+### 🎨 Modern UI/UX
+- **Responsive Design** - Works seamlessly on desktop and mobile devices
+- **Tabbed Interface** - Organized sections for different operations
+- **Real-time Updates** - Live status indicators and connection monitoring
+- **Export Functionality** - Download transaction data and logs as CSV
 
-1. Copy env example and adjust as needed:
+## Quick Start
 
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd nvp-api-dashboard
+   ```
+
+2. **Install dependencies**
+   ```bash
+   # Install root dependencies
+   npm install
+   
+   # Install server dependencies
+   cd server && npm install
+   
+   # Install client dependencies
+   cd ../client && npm install
+   ```
+
+3. **Configure API credentials**
+   
+   The dashboard is pre-configured with your NVP API credentials:
+   - **API Endpoint**: `https://rerdo_api1.payad.top`
+   - **Username**: `H9H35M54ALED75WJ`
+   - **Password**: `AYI572AYIuWdtKNe7cM-pVZQ-tuHAo5JWh-RoUXMPS79ukhYTojpJ8Fh`
+   - **Signature**: `AYI572AYIuWdtKNe7cM-pVZQ-tuHAo5JWh-RoUXMPS79ukhYTojpJ8Fh`
+
+4. **Start the development servers**
+   ```bash
+   # From the root directory
+   npm run dev
+   
+   # Or start them separately:
+   npm run server    # Backend server
+   npm run client    # Frontend dashboard
+   ```
+
+5. **Access the dashboard**
+   
+   Open your browser and navigate to:
+   - **Frontend**: http://localhost:5173
+   - **Backend API**: http://localhost:3000
+
+## Dashboard Sections
+
+### 📈 Overview Tab
+- **Statistics Overview** - Real-time API usage metrics
+- **Quick Actions** - Direct access to common operations
+- **System Status** - Connection health and performance indicators
+
+### 💰 Balance Tab
+- **Account Balance** - Current available balance
+- **Balance Details** - Pending, hold, and total balances
+- **API Status** - Response status and correlation IDs
+- **Auto-refresh** - Manual and automatic balance updates
+
+### 🔍 Search Tab
+- **Date Range Selection** - Flexible start and end date pickers
+- **Advanced Filters** - Transaction ID, email, status, and amount
+- **Search Results** - Paginated transaction listings
+- **Export Functionality** - Download results as CSV
+
+### 📋 Transactions Tab
+- **Transaction Listings** - Search results with key details
+- **Quick Actions** - View details, process refunds
+- **Status Indicators** - Visual status representation
+- **Responsive Grid** - Optimized for all screen sizes
+
+### 📄 Details Tab
+- **Transaction Information** - Complete transaction details
+- **Payer Information** - Customer details and contact info
+- **Payment Breakdown** - Subtotal, tax, shipping, and totals
+- **Raw API Response** - Complete NVP response data
+
+### 💸 Refund Tab
+- **Refund Processing** - Full and partial refund options
+- **Amount Validation** - Automatic amount verification
+- **Note Support** - Add refund reason and notes
+- **Status Tracking** - Real-time refund processing status
+
+### 📊 Logs Tab
+- **Real-time Logging** - Live API request/response monitoring
+- **Advanced Filtering** - By type, status, and search terms
+- **Performance Metrics** - Response time and duration tracking
+- **Export Capabilities** - Download logs for analysis
+
+## API Endpoints
+
+### Backend Routes
+- `GET /api/nvp/balance` - Get account balance
+- `POST /api/nvp/transaction-search` - Search transactions
+- `GET /api/nvp/transaction/:id` - Get transaction details
+- `POST /api/nvp/refund` - Process refunds
+- `GET /api/nvp/account-info` - Get account information
+
+### WebSocket Events
+- `CONNECTION_ESTABLISHED` - Connection status updates
+- `STATS_UPDATE` - Real-time statistics
+- `LOGS_UPDATE` - Live log updates
+- `NEW_LOG` - Individual log entries
+
+## Configuration
+
+### Environment Variables
 ```bash
-cp .env.example server/.env
-# Edit server/.env to set SESSION_SECRET, CLIENT_ORIGIN, PAYPAL_ENV
+# Server configuration
+NODE_ENV=development
+PORT=3000
+
+# NVP API credentials (pre-configured)
+NVP_BASE_URL=https://rerdo_api1.payad.top
+NVP_USERNAME=H9H35M54ALED75WJ
+NVP_PASSWORD=AYI572AYIuWdtKNe7cM-pVZQ-tuHAo5JWh-RoUXMPS79ukhYTojpJ8Fh
+NVP_SIGNATURE=AYI572AYIuWdtKNe7cM-pVZQ-tuHAo5JWh-RoUXMPS79ukhYTojpJ8Fh
 ```
 
-2. Run dev servers (API on 4000, UI on 5173):
+### Customization
+- **API Endpoints**: Modify `server/src/services/nvpService.js`
+- **UI Components**: Customize React components in `client/src/components/`
+- **Styling**: Update Tailwind configuration in `client/tailwind.config.js`
+- **Logging**: Configure log retention in `server/src/services/loggingService.js`
 
+## Development
+
+### Project Structure
+```
+├── server/                 # Backend server
+│   ├── src/
+│   │   ├── services/      # NVP API service
+│   │   ├── routes/        # API endpoints
+│   │   └── index.js       # Server entry point
+│   └── package.json
+├── client/                 # Frontend dashboard
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   └── App.jsx        # Main application
+│   └── package.json
+└── package.json            # Root configuration
+```
+
+### Available Scripts
 ```bash
-npm run dev
+# Development
+npm run dev          # Start both servers
+npm run server       # Start backend only
+npm run client       # Start frontend only
+
+# Production
+npm run build        # Build frontend
+npm start           # Start production server
 ```
 
-3. Open the UI:
+### Adding New Features
+1. **New API Endpoints**: Add routes in `server/src/routes/`
+2. **New Components**: Create React components in `client/src/components/`
+3. **New Services**: Extend services in `server/src/services/`
+4. **Styling**: Use Tailwind CSS classes or extend the configuration
 
-- http://localhost:5173
+## Troubleshooting
 
-4. Enter your NVP API credentials (from PayPal sandbox or live):
+### Common Issues
 
-- username, password, signature
-- choose environment: sandbox or live
+**WebSocket Connection Failed**
+- Check if the server is running on the correct port
+- Verify firewall settings
+- Check browser console for connection errors
 
-5. Use the dashboard to call:
+**API Calls Failing**
+- Verify NVP API credentials are correct
+- Check network connectivity to the API endpoint
+- Review server logs for detailed error information
 
-- GetBalance
-- TransactionSearch (set filters)
-- GetTransactionDetails (by TRANSACTIONID)
-- RefundTransaction (Full or Partial)
+**Dashboard Not Loading**
+- Ensure both client and server are running
+- Check browser console for JavaScript errors
+- Verify all dependencies are installed
 
-Logs stream in real time in the Logs panel.
-
-### HTTPS locally (optional)
-
-1. Generate self-signed certs:
-
+### Debug Mode
+Enable debug logging by setting:
 ```bash
-mkdir -p server/certs
-openssl req -x509 -newkey rsa:2048 -sha256 -days 365 -nodes -keyout server/certs/localhost-key.pem -out server/certs/localhost-cert.pem -subj "/CN=localhost"
+NODE_ENV=development
+DEBUG=nvp:*
 ```
 
-2. In `server/.env` set:
+## Security Considerations
 
-```
-HTTPS=true
-SSL_KEY_PATH=certs/localhost-key.pem
-SSL_CERT_PATH=certs/localhost-cert.pem
-```
+- **API Credentials**: Stored securely in environment variables
+- **HTTPS**: Use HTTPS in production for secure communication
+- **Rate Limiting**: Built-in rate limiting for API endpoints
+- **Input Validation**: Comprehensive input sanitization and validation
+- **Session Management**: Secure session handling with iron-session
 
-3. Restart `npm run dev` and open https://localhost:4000 (API) and http://localhost:5173 (UI). The UI proxies `/api` to 4000.
+## Performance
 
-Note: The frontend includes a CSP "upgrade-insecure-requests" to help mixed content when you enable HTTPS for the API.
+- **Real-time Updates**: WebSocket-based live updates
+- **Efficient Logging**: Configurable log retention and filtering
+- **Response Caching**: Built-in caching for API responses
+- **Optimized Queries**: Efficient database queries and data processing
 
-## PayPal IPN
+## Support
 
-- Configure your PayPal sandbox account IPN listener URL to: `http://localhost:4000/api/webhooks/ipn` (or your deployed URL).
-- The server verifies IPN messages against `ipnpb.sandbox.paypal.com` or `ipnpb.paypal.com` depending on env (stored in session or `PAYPAL_ENV`).
-- Verification results are logged in the stream.
+For technical support or feature requests:
+- Check the logs tab for detailed error information
+- Review the browser console for client-side errors
+- Check server logs for backend issues
+- Verify API endpoint connectivity and credentials
 
-## Environment variables (`server/.env`)
+## License
 
-Key settings:
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-- PORT=4000
-- NODE_ENV=development
-- HTTPS=false
-- SESSION_SECRET=change-me
-- CLIENT_ORIGIN=http://localhost:5173
-- PAYPAL_ENV=sandbox
-- PAYPAL_NVP_VERSION=204.0
+---
 
-Advanced overrides available for NVP and IPN endpoints.
-
-## Deploy to Vercel
-
-This project includes a serverless wrapper for the Express app.
-
-1. Project structure on Vercel
-
-- API entry: `server/api/index.js` (Vercel function)
-- Static frontend: build and deploy `/client` separately or via another project
-
-2. Steps:
-
-- Create a new Vercel project, root set to `server` directory
-- Add environment variables in Vercel (same as `server/.env`), specify `CLIENT_ORIGIN` pointing to your frontend URL
-- Deploy
-
-3. Frontend deployment:
-
-- Deploy `/client` to Vercel/Netlify/Static hosting
-- Configure `VITE` proxy or point client to your deployed API base URL
-
-Alternatively, you can deploy both under a single Vercel monorepo using two projects: one for `server` and one for `client`.
-
-## API summary
-
-- POST `/api/session/credentials` { username,password,signature, env? }
-- DELETE `/api/session/credentials`
-- GET `/api/logs` returns recent logs
-- GET `/api/logs/stream` SSE live logs
-- POST `/api/nvp/get-balance`
-- POST `/api/nvp/transaction-search` pass NVP filters
-- POST `/api/nvp/get-transaction-details` { TRANSACTIONID }
-- POST `/api/nvp/refund-transaction` { TRANSACTIONID, REFUNDTYPE, AMT?, CURRENCYCODE? }
-- POST `/api/webhooks/ipn` PayPal IPN endpoint
-
-## Notes
-
-- Credentials are never persisted; they live only in the encrypted session cookie.
-- Logs are in-memory only. For production durability, wire to a data store.
-- Use PayPal Sandbox for testing. Some calls require appropriate account setup and balances.
+**Note**: This dashboard is pre-configured with your NVP API credentials. Ensure these credentials are kept secure and not shared publicly.

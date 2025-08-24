@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "functions": {
+    "index.php": {
+      "runtime": "@vercel/php@0.6.0"
+    },
+    "server/api/index.js": {
+      "runtime": "@vercel/node@20",
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/server/api/index.js" }
+  ]
+}
